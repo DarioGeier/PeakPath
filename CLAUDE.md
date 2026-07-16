@@ -19,6 +19,12 @@ Eigenständiges Projekt, kein Zusammenhang mit anderen Repos/Apps von Dario.
   auch wenn die App inzwischen PeakPath heißt)
 - PWA: `manifest.webmanifest` + `sw.js` (Service Worker, cacht `index.html`
   aggressiv – nach Deploys immer an Hard-Reload/privaten Tab denken)
+- **Zielgerät: Darios iPhone** (Safari bzw. PWA vom Homebildschirm). Neue
+  Browser-Funktionen immer gegen Safari/iOS prüfen, nicht gegen Chrome –
+  Safari hinkt oft hinterher und liefert manche APIs gar nicht.
+- Langfristig ist geplant, aus der Web-App eine echte native App zu machen.
+  Das ist aber weit weg (erst wenn alles rundläuft und Funktionen stehen) –
+  **kein Grund, heute schon etwas darauf hin zu verbiegen.**
 - Deployment: GitHub Pages, dieses Repo – **Repo ist öffentlich**, alles
   Committete ist im Netz lesbar. Nichts Privates/Geheimes einchecken.
 - Design: Cream/Sage-Farbpalette (`--bg:#F2F5EE`, `--primary:#2F5D46`),

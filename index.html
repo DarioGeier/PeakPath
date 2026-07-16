@@ -1328,6 +1328,7 @@ function addExerciseToPlan(def) {
 let activeWorkout = null;
 let workoutTickInterval = null;
 let workoutPaused = false;
+let wakeLock = null;
 
 function buildRunSequence(plan) {
   // Flache Liste aller Einheiten über alle Übungen hinweg, mit Marker "letzte Einheit einer Übung"
@@ -1376,10 +1377,30 @@ function startWorkoutFromPlan(plan) {
   announceCurrentStep();
   saveActiveSnapshot();
 }
+/* ---------- Bildschirm während des Trainings wachhalten ---------- */
+// Braucht HTTPS und iOS 16.4+. Wo es fehlt, passiert nichts und der Bildschirm
+// verhält sich wie vorher – deshalb überall stillschweigend abfangen.
+async function requestWakeLock() {
+  if (!('wakeLock' in navigator) || wakeLock) return;
+  try {
+    wakeLock = await navigator.wakeLock.request('screen');
+    // Das System gibt die Sperre beim Wegwischen von selbst frei
+    wakeLock.addEventListener('release', () => { wakeLock = null; });
+  } catch {
+    wakeLock = null;
+  }
+}
+function releaseWakeLock() {
+  if (!wakeLock) return;
+  wakeLock.release().catch(() => {});
+  wakeLock = null;
+}
+
 function showWorkoutScreen() {
   renderWorkoutStep();
   updateElapsed();
   if (!workoutPaused) startWorkoutTicking();
+  requestWakeLock();
   screenWorkout.hidden = false;
   resetScreenScroll(screenWorkout);
 }
@@ -1580,6 +1601,7 @@ async function closeWorkout() {
   saveWorkoutToHistory(false);
   stopWorkoutTicking();
   stopImageCycle();
+  releaseWakeLock();
   clearActiveSnapshot();
   screenWorkout.hidden = true;
   activeWorkout = null;
@@ -1588,6 +1610,7 @@ function finishWorkoutSequence() {
   const entry = saveWorkoutToHistory(true);
   stopWorkoutTicking();
   stopImageCycle();
+  releaseWakeLock();
   clearActiveSnapshot();
   screenWorkout.hidden = true;
   showCompleteScreen(entry);
@@ -1852,6 +1875,11 @@ function init() {
 
   $('#btn-picker-close').addEventListener('click', closePicker);
   exerciseSearch.addEventListener('input', renderPickerList);
+
+  // Nach dem Wechsel in eine andere App ist die Bildschirmsperre weg – neu anfordern
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && activeWorkout) requestWakeLock();
+  });
 
   $('#btn-workout-close').addEventListener('click', closeWorkout);
   $('#workout-circle').addEventListener('click', onCircleTap);
