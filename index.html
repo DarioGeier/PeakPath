@@ -174,7 +174,7 @@ p{margin:0;}
   width:38px;height:38px;border-radius:10px;background:var(--surface-alt);color:var(--primary);
   display:flex;align-items:center;justify-content:center;flex-shrink:0;
 }
-.detail-exercise-main{flex:1;min-width:0;}
+.detail-exercise-main{flex:1;min-width:0;display:flex;flex-direction:column;}
 .detail-exercise-name{font-size:14.5px;font-weight:600;color:var(--text);}
 .detail-exercise-units{font-size:12.5px;color:var(--text-muted);margin-top:1px;}
 .detail-exercise-weight{
@@ -276,18 +276,28 @@ p{margin:0;}
 .picker-empty{text-align:center;color:var(--text-muted);font-size:14px;padding:40px 20px;}
 
 /* ---------- Workout ---------- */
-.workout-screen{position:fixed;inset:0;background:var(--bg);z-index:32;overflow-y:auto;max-width:520px;margin:0 auto;display:flex;flex-direction:column;}
+/* Fuellt exakt die sichtbare Hoehe und scrollt im Normalfall nie: der
+   Trainings-Screen verdeckt die untere Navigationsleiste, deshalb darf er
+   deren Platz aus .screen nicht erben – nur der Home-Indikator bleibt frei.
+   overflow-y:auto ist reine Notbremse, damit im Extremfall gescrollt statt
+   abgeschnitten wird. */
+.workout-screen{position:fixed;inset:0;background:var(--bg);z-index:32;overflow-y:auto;max-width:520px;margin:0 auto;display:flex;flex-direction:column;min-height:0;padding-bottom:var(--safe-b);}
 .workout-topbar{gap:10px;padding-top:27px;flex-shrink:0;}
 .workout-elapsed{flex:1;text-align:center;font-variant-numeric:tabular-nums;font-size:15px;font-weight:600;color:var(--text-muted);}
 .workout-progress{font-size:12.5px;color:var(--text-muted);flex-shrink:0;min-width:40px;text-align:right;}
-.workout-body{flex:1;display:flex;flex-direction:column;align-items:center;padding:6px 24px 20px;text-align:center;}
+/* min-height:0 ist noetig, damit die Kinder unter ihre Inhaltsgroesse
+   schrumpfen duerfen – ohne das gibt das Uebungsbild keinen Platz ab */
+.workout-body{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;padding:6px 24px 20px;text-align:center;}
 .workout-exercise-name{font-family:var(--font-display);font-size:24px;font-weight:600;color:var(--text);margin-top:6px;}
 .workout-last-weight{font-size:12.5px;color:var(--text-muted);margin-top:2px;}
 .workout-unit-label{font-size:13px;color:var(--text-muted);margin-top:4px;}
 .workout-instruction{font-size:16px;color:var(--text);margin-top:10px;}
-.workout-anim-wrap{position:relative;width:100%;max-width:320px;flex:1;display:flex;align-items:center;justify-content:center;margin:16px 0;min-height:260px;}
+/* Das einzige nachgiebige Element im Trainings-Screen: alles andere (Kreis,
+   Text, Bedienung) behaelt seine Groesse, das Bild gibt Platz ab, wenn der
+   Bildschirm klein ist. Kein festes height mehr – sonst wird unten
+   abgeschnitten statt geschrumpft. */
 .workout-anim{
-  width:100%;max-width:340px;height:260px;flex:0 0 260px;margin-top:10px;
+  width:100%;max-width:340px;flex:1 1 auto;min-height:0;max-height:260px;margin-top:10px;
   border-radius:var(--radius-l);background:var(--surface-alt);
   display:flex;align-items:center;justify-content:center;color:var(--primary);opacity:.55;
   overflow:hidden;
@@ -1507,6 +1517,9 @@ function renderWorkoutStep() {
     }
     lastAnimExIndex = step.exIndex;
   }
+
+  // Waehrend der Ruhezeit kein Uebungsbild – der freie Platz verteilt sich von selbst
+  $('#workout-anim').hidden = activeWorkout.phase === 'rest';
 
   $('#workout-progress').textContent = `${activeWorkout.pos + 1}/${activeWorkout.seq.length}`;
   $('#workout-exercise-name').textContent = step.exName;
