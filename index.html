@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>PeakPath</title>
 <meta name="theme-color" content="#2F5D46">
 <link rel="manifest" href="manifest.webmanifest">
@@ -38,6 +38,10 @@
 *{box-sizing:border-box;}
 [hidden]{display:none !important;}
 html,body{height:100%;}
+/* Kein Zoom: die App soll sich wie eine echte App anfassen, nicht wie eine Webseite.
+   pan-x pan-y erlaubt weiterhin normales Scrollen, unterbindet aber Doppeltipp-
+   und Zwei-Finger-Zoom. Das <meta viewport> allein reicht auf iOS nicht. */
+html{touch-action:pan-x pan-y;}
 body{
   margin:0;
   background:var(--bg);
@@ -292,6 +296,16 @@ p{margin:0;}
 .workout-last-weight{font-size:12.5px;color:var(--text-muted);margin-top:2px;}
 .workout-unit-label{font-size:13px;color:var(--text-muted);margin-top:4px;}
 .workout-instruction{font-size:16px;color:var(--text);margin-top:10px;}
+/* Timer fuer Zeit-Uebungen (Rudern, Laufband, Plank ...): bewusst flach gehalten,
+   der Trainings-Screen hat wenig Hoehe uebrig. */
+.workout-timer{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:8px;flex-shrink:0;}
+.ex-timer-btn{
+  min-width:78px;padding:7px 14px;border-radius:999px;border:1px solid var(--primary);
+  background:var(--primary);color:#fff;font-size:14px;font-weight:600;
+}
+.workout-timer.is-running .ex-timer-btn{background:var(--surface);color:var(--primary);}
+.ex-timer-display{font-size:15px;font-weight:600;color:var(--text-muted);font-variant-numeric:tabular-nums;}
+.workout-timer.is-done .ex-timer-display{color:var(--primary);}
 /* Das einzige nachgiebige Element im Trainings-Screen: alles andere (Kreis,
    Text, Bedienung) behaelt seine Groesse, das Bild gibt Platz ab, wenn der
    Bildschirm klein ist. Kein festes height mehr – sonst wird unten
@@ -301,6 +315,13 @@ p{margin:0;}
   border-radius:var(--radius-l);background:var(--surface-alt);
   display:flex;align-items:center;justify-content:center;color:var(--primary);opacity:.55;
   overflow:hidden;
+}
+/* Ruhezeit: kein Übungsbild, aber der Kasten behält seinen Platz – sonst springt
+   der Kreis nach oben und der Übergang ruckelt. Der Platzhalter steht hier, bis
+   die richtige Pausen-Grafik existiert. */
+.workout-anim.is-rest > *{display:none;}
+.workout-anim.is-rest::after{
+  content:'Pause';font-size:15px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
 }
 .workout-anim svg{width:30%;height:30%;}
 .pattern-anim{width:42% !important;height:42% !important;opacity:1;}
@@ -317,10 +338,12 @@ p{margin:0;}
 @media (prefers-reduced-motion: reduce){
   .squat-figure, .squat-torso, .squat-legs{animation:none;}
 }
-.workout-circle-area{position:relative;display:flex;align-items:center;justify-content:center;gap:18px;z-index:2;flex-shrink:0;margin-top:18px;}
+/* gap bewusst klein: 56 + 196 (Kreis) + 56 + 2x8 = 324px und passt damit noch auf
+   ein 375px-iPhone (327px nutzbar). Groesser geht nur, wenn der Kreis schrumpft. */
+.workout-circle-area{position:relative;display:flex;align-items:center;justify-content:center;gap:8px;z-index:2;flex-shrink:0;margin-top:18px;}
 .circle-adjust{
-  width:40px;height:40px;border-radius:50%;background:var(--surface);border:1px solid var(--border);
-  font-size:22px;font-weight:600;color:var(--text);display:flex;align-items:center;justify-content:center;
+  width:56px;height:56px;border-radius:50%;background:var(--surface);border:1px solid var(--border);
+  font-size:28px;font-weight:600;color:var(--text);display:flex;align-items:center;justify-content:center;
   flex-shrink:0;
 }
 .circle-adjust:active{background:var(--surface-alt);}
@@ -578,6 +601,9 @@ p{margin:0;}
       <button id="btn-workout-close" class="icon-btn" type="button"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
       <span id="workout-elapsed" class="workout-elapsed">0:00</span>
       <span class="workout-progress" id="workout-progress"></span>
+      <button id="btn-workout-skip" class="icon-btn" type="button" aria-label="Satz überspringen" title="Satz überspringen">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4l10 8-10 8V4z"/><path d="M19 5v14"/></svg>
+      </button>
     </header>
 
     <div class="workout-body">
@@ -585,6 +611,11 @@ p{margin:0;}
       <p class="workout-last-weight" id="workout-last-weight"></p>
       <p class="workout-unit-label" id="workout-unit-label"></p>
       <p class="workout-instruction" id="workout-instruction"></p>
+
+      <div id="workout-timer" class="workout-timer" hidden>
+        <button id="btn-ex-timer" class="ex-timer-btn" type="button">Start</button>
+        <span id="ex-timer-display" class="ex-timer-display">0:00</span>
+      </div>
 
       <div id="workout-anim" class="workout-anim">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5 12 12l-5.5 5.5M2 4l2.5 2.5M22 4l-2.5 2.5M2 20l2.5-2.5M22 20l-2.5-2.5"/><circle cx="12" cy="12" r="3"/></svg>
@@ -1381,12 +1412,69 @@ function startWorkoutFromPlan(plan) {
     restEndAt: null,
     restFrozenRemaining: null,
     restSeconds: 0,
+    ...leererUebungsTimer(),
   };
   showWorkoutScreen();
   ensureAudioContext();
   announceCurrentStep();
   saveActiveSnapshot();
 }
+/* ---------- Timer für Zeit-Übungen (Rudern, Laufband, Plank ...) ----------
+   Die Uhr oben misst das ganze Training. Wer erst nach dem Einstellen der
+   Maschine losrudert, will aber die reine Übungszeit wissen. Dieser Timer
+   läuft nur auf Knopfdruck, meldet sich beim Erreichen der Zielzeit und
+   überträgt die gemessene Zeit beim Stoppen in den Kreis. */
+function leererUebungsTimer() {
+  return { exTimerRunning: false, exTimerStartedAt: null, exTimerAccumMs: 0, exTimerDone: false };
+}
+function isZeitUebung(step) {
+  return !!step && (step.exType === 'cardio' || step.exType === 'hold');
+}
+function exTimerElapsedMs() {
+  if (!activeWorkout) return 0;
+  const basis = activeWorkout.exTimerAccumMs || 0;
+  return (activeWorkout.exTimerRunning && activeWorkout.exTimerStartedAt)
+    ? basis + (Date.now() - activeWorkout.exTimerStartedAt)
+    : basis;
+}
+// Zielzeit ist immer der Planwert und bleibt stehen. Der Kreis daneben ist das
+// Protokoll dessen, was man tatsächlich geschafft hat – den überschreibt der
+// Timer beim Stoppen selbst, er taugt deshalb nicht als eigenes Ziel.
+function zielSekundenFuer(step) {
+  const wert = step.target || 0;
+  return step.exType === 'cardio' ? wert * 60 : wert;
+}
+function resetUebungsTimer() {
+  if (!activeWorkout) return;
+  Object.assign(activeWorkout, leererUebungsTimer());
+}
+function toggleUebungsTimer() {
+  if (!activeWorkout || activeWorkout.phase !== 'exercise') return;
+  if (activeWorkout.exTimerRunning) stopUebungsTimer(true);
+  else startUebungsTimer();
+}
+function startUebungsTimer() {
+  activeWorkout.exTimerRunning = true;
+  activeWorkout.exTimerStartedAt = Date.now();
+  activeWorkout.exTimerDone = false;
+  renderWorkoutStep();
+  saveActiveSnapshot();
+}
+function stopUebungsTimer(zeitUebernehmen) {
+  if (!activeWorkout || !activeWorkout.exTimerRunning) return;
+  activeWorkout.exTimerAccumMs = exTimerElapsedMs();
+  activeWorkout.exTimerRunning = false;
+  activeWorkout.exTimerStartedAt = null;
+  const step = currentStep();
+  const sek = Math.round(activeWorkout.exTimerAccumMs / 1000);
+  if (zeitUebernehmen && step && sek > 0) {
+    step.achieved = step.exType === 'cardio' ? Math.max(1, Math.round(sek / 60)) : sek;
+    showToast(`Zeit übernommen: ${fmtTime(sek)}`);
+  }
+  renderWorkoutStep();
+  saveActiveSnapshot();
+}
+
 /* ---------- Bildschirm während des Trainings wachhalten ---------- */
 // Braucht HTTPS und iOS 16.4+. Wo es fehlt, passiert nichts und der Bildschirm
 // verhält sich wie vorher – deshalb überall stillschweigend abfangen.
@@ -1497,6 +1585,17 @@ function announceCurrentStep() {
 
 function processWorkoutTimers() {
   if (!activeWorkout || workoutPaused) return;
+  // Zielzeit einer Zeit-Übung erreicht: einmal Bescheid geben, aber weiterlaufen
+  // lassen – wer länger rudert, soll das auch erfasst bekommen.
+  if (activeWorkout.phase === 'exercise' && activeWorkout.exTimerRunning && !activeWorkout.exTimerDone) {
+    const step = currentStep();
+    const ziel = isZeitUebung(step) ? zielSekundenFuer(step) : 0;
+    if (ziel > 0 && exTimerElapsedMs() >= ziel * 1000) {
+      activeWorkout.exTimerDone = true;
+      playRestEndSound();
+      speak('Zeit erreicht.');
+    }
+  }
   if (activeWorkout.phase === 'rest' && activeWorkout.restEndAt && Date.now() >= activeWorkout.restEndAt) {
     playRestEndSound();
     advanceAfterRest();
@@ -1518,15 +1617,31 @@ function renderWorkoutStep() {
     lastAnimExIndex = step.exIndex;
   }
 
-  // Waehrend der Ruhezeit kein Uebungsbild – der freie Platz verteilt sich von selbst
-  $('#workout-anim').hidden = activeWorkout.phase === 'rest';
+  // Ruhezeit: kein Übungsbild, aber der Kasten bleibt stehen (siehe CSS .is-rest) –
+  // sonst springt der Kreis nach oben.
+  $('#workout-anim').classList.toggle('is-rest', activeWorkout.phase === 'rest');
 
   $('#workout-progress').textContent = `${activeWorkout.pos + 1}/${activeWorkout.seq.length}`;
   $('#workout-exercise-name').textContent = step.exName;
   const lastWeight = getLastWeightForExercise(step.exName);
   $('#workout-last-weight').textContent = (lastWeight && String(lastWeight) !== String(step.weight))
     ? `Zuletzt: ${lastWeight} kg` : '';
-  $('#workout-unit-label').textContent = `Einheit ${step.unitIndex + 1}`;
+  // Aus der Sequenz gezählt statt gespeichert: so stimmt es auch für Trainings,
+  // die noch aus einem älteren Zwischenstand wiederhergestellt werden.
+  const saetzeDieserUebung = activeWorkout.seq.filter(s => s.exIndex === step.exIndex).length;
+  $('#workout-unit-label').textContent = `Satz ${step.unitIndex + 1} von ${saetzeDieserUebung}`;
+
+  const timerBox = $('#workout-timer');
+  const timerSichtbar = isZeitUebung(step) && activeWorkout.phase === 'exercise';
+  timerBox.hidden = !timerSichtbar;
+  if (timerSichtbar) {
+    const sek = Math.round(exTimerElapsedMs() / 1000);
+    $('#ex-timer-display').textContent = `${fmtTime(sek)} / ${fmtTime(zielSekundenFuer(step))}`;
+    $('#btn-ex-timer').textContent = activeWorkout.exTimerRunning ? 'Stopp'
+      : (activeWorkout.exTimerAccumMs ? 'Weiter' : 'Start');
+    timerBox.classList.toggle('is-running', !!activeWorkout.exTimerRunning);
+    timerBox.classList.toggle('is-done', !!activeWorkout.exTimerDone);
+  }
 
   const unitWord = step.exType === 'hold' ? 'Sekunden halten' : step.exType === 'cardio' ? 'Minuten' : 'Wiederholungen';
   const circle = $('#workout-circle');
@@ -1589,9 +1704,23 @@ function advanceAfterRest() {
   activeWorkout.restFrozenRemaining = null;
   advancePosition();
 }
+// Übersprungene Sätze zählen nicht als erledigt und fließen mit 0 in die
+// Statistik ein – siehe saveWorkoutToHistory().
+function skipCurrentStep() {
+  if (!activeWorkout) return;
+  const step = currentStep();
+  if (!step) return;
+  step.skipped = true;
+  step.achieved = 0;
+  activeWorkout.restEndAt = null;
+  activeWorkout.restFrozenRemaining = null;
+  showToast('Satz übersprungen.');
+  advancePosition();
+}
 function advancePosition() {
   activeWorkout.pos += 1;
   activeWorkout.phase = 'exercise';
+  resetUebungsTimer();
   renderWorkoutStep();
   if (!activeWorkout) return; // Training kann durch renderWorkoutStep() gerade beendet worden sein
   announceCurrentStep();
@@ -1642,8 +1771,11 @@ function closeCompleteScreen() {
 }
 function saveWorkoutToHistory(completed) {
   const durationSeconds = Math.floor((Date.now() - activeWorkout.startedAt - activeWorkout.totalPausedMs) / 1000);
-  const completedUnits = Math.min(activeWorkout.pos, activeWorkout.seq.length);
-  const doneSeq = activeWorkout.seq.slice(0, completedUnits);
+  // Erreicht = alles vor der aktuellen Position. Übersprungene Sätze zählen davon
+  // aber nicht als erledigt, sonst behauptet die Statistik mehr, als man getan hat.
+  const erreichteUnits = Math.min(activeWorkout.pos, activeWorkout.seq.length);
+  const doneSeq = activeWorkout.seq.slice(0, erreichteUnits);
+  const completedUnits = doneSeq.filter(s => !s.skipped).length;
   let totalKg = 0;
   doneSeq.forEach((s) => {
     const w = parseFloat(s.weight) || 0;
@@ -1658,7 +1790,7 @@ function saveWorkoutToHistory(completed) {
       group = { exIndex: s.exIndex, name: s.exName, type: s.exType, weight: s.weight, units: [] };
       exerciseMap.push(group);
     }
-    group.units.push({ target: s.target, achieved: s.achieved });
+    group.units.push({ target: s.target, achieved: s.achieved, skipped: !!s.skipped });
   });
 
   const entry = {
@@ -1895,9 +2027,16 @@ function init() {
   });
 
   $('#btn-workout-close').addEventListener('click', closeWorkout);
+  $('#btn-workout-skip').addEventListener('click', skipCurrentStep);
+  $('#btn-ex-timer').addEventListener('click', toggleUebungsTimer);
   $('#workout-circle').addEventListener('click', onCircleTap);
   $('#btn-circle-minus').addEventListener('click', () => adjustCircleValue(-1));
   $('#btn-circle-plus').addEventListener('click', () => adjustCircleValue(1));
+  // Zwei-Finger-Zoom abfangen: WebKit (Safari/Chrome auf iOS) hoert hier auf
+  // eigene gesture-Events und ignoriert dabei touch-action.
+  ['gesturestart', 'gesturechange', 'gestureend'].forEach(typ => {
+    document.addEventListener(typ, e => e.preventDefault(), { passive: false });
+  });
   $('#btn-complete-done').addEventListener('click', closeCompleteScreen);
 
   document.addEventListener('visibilitychange', () => {
