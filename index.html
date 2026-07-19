@@ -293,7 +293,18 @@ p{margin:0;}
    schrumpfen duerfen – ohne das gibt das Uebungsbild keinen Platz ab */
 .workout-body{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;padding:6px 24px 20px;text-align:center;}
 .workout-exercise-name{font-family:var(--font-display);font-size:24px;font-weight:600;color:var(--text);margin-top:6px;}
-.workout-last-weight{font-size:12.5px;color:var(--text-muted);margin-top:2px;}
+/* Gewicht im Training verstellbar (0,5-kg-Schritte). Bewusst flach gehalten –
+   der Trainings-Screen hat wenig Hoehe uebrig. */
+.workout-weight{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:6px;flex-shrink:0;}
+.weight-btn{
+  width:32px;height:32px;border-radius:50%;background:var(--surface);border:1px solid var(--border);
+  font-size:19px;font-weight:600;color:var(--text);display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.weight-btn:active{background:var(--surface-alt);}
+.weight-value{
+  font-size:16px;font-weight:600;color:var(--text);min-width:82px;text-align:center;
+  font-variant-numeric:tabular-nums;
+}
 .workout-unit-label{font-size:13px;color:var(--text-muted);margin-top:4px;}
 .workout-instruction{font-size:16px;color:var(--text);margin-top:10px;}
 /* Timer fuer Zeit-Uebungen (Rudern, Laufband, Plank ...): bewusst flach gehalten,
@@ -317,18 +328,22 @@ p{margin:0;}
    duerfen nicht abgeschnitten werden. Auf sehr niedrigen Bildschirmen scrollt der
    Screen lieber ein Stueck, als die Zahlen unleserlich zu machen. */
 .workout-stats{
-  width:100%;max-width:340px;flex:1 1 auto;min-height:66px;margin-top:10px;
+  width:100%;max-width:340px;flex:1 1 auto;min-height:56px;margin-top:8px;
   display:flex;align-items:center;justify-content:center;gap:8px;overflow:hidden;
 }
 .wstat{
-  flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:4px;
-  background:var(--surface-alt);border-radius:var(--radius-m);padding:14px 6px;
+  flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:3px;
+  background:var(--surface-alt);border-radius:var(--radius-m);padding:10px 6px;
 }
 .wstat-value{
   font-family:var(--font-display);font-size:17px;font-weight:600;color:var(--text);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;
 }
 .wstat-label{font-size:10.5px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;}
+
+/* Kurze Bildschirme (kleines iPhone, Browser mit Adressleiste): alles etwas
+   enger, damit Kreis, Stats UND die Fortschrittspunkte ohne Scrollen passen.
+   Auf normalen Geraeten aendert sich dadurch nichts. */
 .squat-figure{animation:squatBob 1.6s ease-in-out infinite;transform-origin:50px 130px;}
 .squat-torso{animation:squatLean 1.6s ease-in-out infinite;transform-origin:50px 72px;}
 .squat-legs{animation:squatLegs 1.6s ease-in-out infinite;transform-origin:50px 72px;}
@@ -432,6 +447,18 @@ p{margin:0;}
   border-radius:var(--radius-s);background:var(--surface-alt);color:var(--protein);font-weight:600;font-size:13px;
 }
 .btn-delete-history-entry:active{background:var(--border);}
+@media (max-height: 620px){
+  .workout-circle{width:158px;height:158px;}
+  .circle-adjust{width:48px;height:48px;font-size:24px;}
+  .workout-circle-area{margin-top:8px;}
+  .workout-exercise-name{font-size:20px;margin-top:2px;}
+  .workout-instruction{font-size:15px;margin-top:5px;}
+  .workout-stats{margin-top:6px;min-height:50px;}
+  .wstat{padding:7px 6px;}
+  .wstat-value{font-size:15px;}
+  .workout-weight,.workout-timer{margin-top:4px;}
+  .workout-body{padding-bottom:12px;}
+}
 </style>
 </head>
 <body>
@@ -578,6 +605,11 @@ p{margin:0;}
             <button type="button" class="stepper-btn" data-step="exRest" data-dir="1">+</button>
           </div>
         </div>
+        <div class="settings-toggle-row">
+          <label class="settings-label" for="plan-use-last-weight">Gewicht vom letzten Mal übernehmen</label>
+          <input id="plan-use-last-weight" type="checkbox">
+        </div>
+        <p class="hint-text">Aus: Das Training startet immer mit den Gewichten aus diesem Plan. An: Es startet mit dem Gewicht, das du bei der Übung zuletzt tatsächlich gestemmt hast – der Plan bleibt dabei unverändert.</p>
       </div>
 
       <div id="exercise-list" class="exercise-list"></div>
@@ -622,9 +654,14 @@ p{margin:0;}
 
     <div class="workout-body">
       <p class="workout-exercise-name" id="workout-exercise-name"></p>
-      <p class="workout-last-weight" id="workout-last-weight"></p>
       <p class="workout-unit-label" id="workout-unit-label"></p>
       <p class="workout-instruction" id="workout-instruction"></p>
+
+      <div id="workout-weight" class="workout-weight" hidden>
+        <button id="btn-weight-minus" class="weight-btn" type="button" aria-label="Gewicht verringern">−</button>
+        <span id="weight-value" class="weight-value">0 kg</span>
+        <button id="btn-weight-plus" class="weight-btn" type="button" aria-label="Gewicht erhöhen">+</button>
+      </div>
 
       <div id="workout-timer" class="workout-timer" hidden>
         <button id="btn-ex-timer" class="ex-timer-btn" type="button">Start</button>
@@ -634,7 +671,7 @@ p{margin:0;}
       <div id="workout-stats" class="workout-stats">
         <div class="wstat"><span class="wstat-value" id="wstat-last">–</span><span class="wstat-label">Zuletzt</span></div>
         <div class="wstat"><span class="wstat-value" id="wstat-pr">–</span><span class="wstat-label">Rekord</span></div>
-        <div class="wstat"><span class="wstat-value" id="wstat-total">–</span><span class="wstat-label">Gesamt</span></div>
+        <div class="wstat"><span class="wstat-value" id="wstat-lastkg">–</span><span class="wstat-label">kg zuletzt</span></div>
       </div>
 
       <div class="workout-circle-area">
@@ -1097,6 +1134,7 @@ function openEditor(planId) {
   planNameInput.value = currentPlan.name;
   $('#rest-sets-value').value = currentPlan.setsRest;
   $('#rest-ex-value').value = currentPlan.exRest;
+  $('#plan-use-last-weight').checked = !!currentPlan.useLastWeight;
   renderExerciseEditorList();
   $('#btn-delete-plan').hidden = !planId;
   screenEditor.hidden = false;
@@ -1197,6 +1235,7 @@ function saveCurrentPlan() {
   if (!name) { showToast('Bitte gib deinem Plan einen Namen.'); planNameInput.focus(); return; }
   if (currentPlan.exercises.length === 0) { showToast('Füge mindestens eine Übung hinzu.'); return; }
   currentPlan.name = name;
+  currentPlan.useLastWeight = $('#plan-use-last-weight').checked;
   const idx = plans.findIndex(p => p.id === currentPlan.id);
   if (idx === -1) plans.push(currentPlan);
   else plans[idx] = currentPlan;
@@ -1317,10 +1356,15 @@ function buildRunSequence(plan) {
   // Flache Liste aller Einheiten über alle Übungen hinweg, mit Marker "letzte Einheit einer Übung"
   const seq = [];
   plan.exercises.forEach((ex, exIndex) => {
+    // Startgewicht: entweder der feste Planwert oder das zuletzt tatsächlich
+    // Gestemmte (Schalter am Plan). Ohne Historie bleibt es beim Planwert.
+    const startGewicht = plan.useLastWeight
+      ? (getLastWeightForExercise(ex.name) ?? ex.weight)
+      : ex.weight;
     ex.units.forEach((unit, unitIndex) => {
       seq.push({
         exIndex, unitIndex,
-        exName: ex.name, exType: ex.type, weight: ex.weight,
+        exName: ex.name, exType: ex.type, weight: startGewicht,
         target: unit.target, achieved: unit.target,
         isLastUnitOfExercise: unitIndex === ex.units.length - 1,
       });
@@ -1368,6 +1412,12 @@ function startWorkoutFromPlan(plan) {
 function einheitKurz(type) {
   return type === 'hold' ? 'Sek' : type === 'cardio' ? 'Min' : 'Wdh';
 }
+// 15.5 -> "15,5 kg" (deutsche Schreibweise, ohne unnötige Nachkomma-Null)
+function fmtKg(wert) {
+  const n = parseFloat(wert);
+  if (!n && n !== 0) return '–';
+  return String(n).replace('.', ',') + ' kg';
+}
 function statsFuerUebung(exName) {
   const eintraege = loadHistory().slice().sort((a, b) => new Date(b.date) - new Date(a.date));
   let letzte = null, rekord = 0, rekordGewicht = null, gesamt = 0;
@@ -1393,14 +1443,30 @@ function renderUebungsStats(step) {
   const einheit = einheitKurz(step.exType);
   $('#wstat-last').textContent = letzte ? letzte.werte.join(' · ') : '–';
   $('#wstat-pr').textContent = rekord
-    ? (rekordGewicht ? `${rekord} × ${rekordGewicht} kg` : `${rekord} ${einheit}`)
+    ? (rekordGewicht ? `${rekord} × ${fmtKg(rekordGewicht)}` : `${rekord} ${einheit}`)
     : '–';
-  $('#wstat-total').textContent = gesamt ? `${gesamt.toLocaleString('de-DE')} ${einheit}` : '–';
-
-  // Hängt ebenfalls an der Historie – hier mit erledigen statt jede Sekunde neu
+  // Gewicht aus dem letzten Training – Vergleichswert zu dem, was heute eingestellt ist
   const lastWeight = getLastWeightForExercise(step.exName);
-  $('#workout-last-weight').textContent = (lastWeight && String(lastWeight) !== String(step.weight))
-    ? `Zuletzt: ${lastWeight} kg` : '';
+  $('#wstat-lastkg').textContent = lastWeight ? fmtKg(lastWeight) : '–';
+}
+
+/* ---------- Gewicht während des Trainings anpassen ----------
+   Gilt für die restlichen Sätze dieser Übung im laufenden Training. Der
+   gespeicherte Plan bleibt unberührt – ob ein Plan beim Start seine eigenen
+   Werte oder das zuletzt Gestemmte nimmt, steuert `useLastWeight` am Plan. */
+const GEWICHT_SCHRITT = 0.5;
+function adjustWeight(dir) {
+  if (!activeWorkout || activeWorkout.phase !== 'exercise') return;
+  const step = currentStep();
+  if (!step || step.exType !== 'strength') return;
+  const alt = parseFloat(step.weight) || 0;
+  const neu = Math.max(0, Math.round((alt + dir * GEWICHT_SCHRITT) * 10) / 10);
+  // auf diesen und alle folgenden Sätze derselben Übung übertragen
+  activeWorkout.seq.forEach((s, i) => {
+    if (i >= activeWorkout.pos && s.exIndex === step.exIndex) s.weight = neu ? String(neu) : '';
+  });
+  renderWorkoutStep();
+  saveActiveSnapshot();
 }
 
 /* ---------- Timer für Zeit-Übungen (Rudern, Laufband, Plank ...) ----------
@@ -1602,6 +1668,15 @@ function renderWorkoutStep() {
   const saetzeDieserUebung = activeWorkout.seq.filter(s => s.exIndex === step.exIndex).length;
   $('#workout-unit-label').textContent = `Satz ${step.unitIndex + 1} von ${saetzeDieserUebung}`;
 
+  // Gewichts-Regler nur bei Kraftübungen und nur während der Übung (nicht in der Pause)
+  const weightBox = $('#workout-weight');
+  const gewichtSichtbar = step.exType === 'strength' && activeWorkout.phase === 'exercise';
+  weightBox.hidden = !gewichtSichtbar;
+  if (gewichtSichtbar) {
+    const w = parseFloat(step.weight) || 0;
+    $('#weight-value').textContent = w ? fmtKg(w) : '0 kg';
+  }
+
   const timerBox = $('#workout-timer');
   const timerSichtbar = isZeitUebung(step) && activeWorkout.phase === 'exercise';
   timerBox.hidden = !timerSichtbar;
@@ -1621,7 +1696,7 @@ function renderWorkoutStep() {
   if (activeWorkout.phase === 'exercise') {
     circle.classList.remove('is-resting');
     $('#workout-instruction').textContent = `Mache ${step.achieved} ${unitWord}`;
-    $('#circle-weight').textContent = step.weight ? `${step.weight} kg` : '';
+    $('#circle-weight').textContent = step.weight ? fmtKg(step.weight) : '';
     $('#circle-value').textContent = step.achieved;
     label.textContent = 'Erledigt';
   } else {
@@ -2001,6 +2076,8 @@ function init() {
   $('#workout-circle').addEventListener('click', onCircleTap);
   $('#btn-circle-minus').addEventListener('click', () => adjustCircleValue(-1));
   $('#btn-circle-plus').addEventListener('click', () => adjustCircleValue(1));
+  $('#btn-weight-minus').addEventListener('click', () => adjustWeight(-1));
+  $('#btn-weight-plus').addEventListener('click', () => adjustWeight(1));
   // Zwei-Finger-Zoom abfangen: WebKit (Safari/Chrome auf iOS) hoert hier auf
   // eigene gesture-Events und ignoriert dabei touch-action.
   ['gesturestart', 'gesturechange', 'gestureend'].forEach(typ => {
