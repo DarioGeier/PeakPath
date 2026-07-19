@@ -436,12 +436,25 @@ p{margin:0;}
 </head>
 <body>
 
+<!-- Logo einmal definiert, wird in allen Kopfzeilen per <use> eingebunden.
+     Bei einer Logo-Änderung muss so nur diese eine Stelle angefasst werden. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="pp-logo" viewBox="-10 -14 124 124">
+    <polyline points="0,94 26,46 44,66 76,16" fill="none" stroke="#8FAE9E" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+    <polyline points="6,86 32,38 50,58 84,8" fill="none" stroke="#2F5D46" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M93.6,-6.1 82.4,22.9 70.7,15 Z" fill="#2F5D46"/>
+  </symbol>
+</svg>
+
 <div id="app">
 
   <!-- ===== SCREEN: Beispielpläne ===== -->
   <main id="screen-examples" class="screen" hidden>
     <header class="topbar">
-      <h1 class="topbar-title">PP-Pläne</h1>
+      <h1 class="topbar-title brand-lockup">
+        <svg class="brand-mark" width="26" height="26" aria-hidden="true"><use href="#pp-logo"/></svg>
+        <span class="brand-word"><b>Peak</b>Path</span>
+      </h1>
     </header>
     <div class="screen-body">
       <p class="hint-text example-plans-hint">Fertige Vorlagen zum Ausprobieren. Direkt starten oder zu deinen eigenen Plänen hinzufügen und frei anpassen.</p>
@@ -453,11 +466,7 @@ p{margin:0;}
   <main id="screen-plans" class="screen">
     <header class="topbar">
       <h1 class="topbar-title brand-lockup">
-        <svg class="brand-mark" viewBox="-10 -14 124 124" width="26" height="26" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <polyline points="0,94 26,46 44,66 76,16" stroke="#8FAE9E" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
-          <polyline points="6,86 32,38 50,58 84,8" stroke="#2F5D46" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M93.6,-6.1 82.4,22.9 70.7,15 Z" fill="#2F5D46"/>
-        </svg>
+        <svg class="brand-mark" width="26" height="26" aria-hidden="true"><use href="#pp-logo"/></svg>
         <span class="brand-word"><b>Peak</b>Path</span>
       </h1>
       <button id="btn-open-settings" class="icon-btn settings-gear-btn" type="button" aria-label="Einstellungen">
@@ -480,7 +489,12 @@ p{margin:0;}
 
   <!-- ===== SCREEN: Verlauf ===== -->
   <main id="screen-history" class="screen" hidden>
-    <header class="topbar"><h1 class="topbar-title">Verlauf</h1></header>
+    <header class="topbar">
+      <h1 class="topbar-title brand-lockup">
+        <svg class="brand-mark" width="26" height="26" aria-hidden="true"><use href="#pp-logo"/></svg>
+        <span class="brand-word"><b>Peak</b>Path</span>
+      </h1>
+    </header>
     <div class="screen-body">
       <div id="history-stats" class="history-stats"></div>
       <div id="history-week" class="history-week-block"></div>
