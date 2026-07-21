@@ -246,6 +246,12 @@ p{margin:0;}
   font-weight:600;font-size:13px;margin-top:4px;
 }
 .btn-add-unit:active{background:var(--border);}
+.exercise-note-input{
+  width:100%;margin-top:8px;padding:9px 11px;border-radius:var(--radius-s);
+  border:1px solid var(--border);background:var(--surface-alt);
+  font-size:13px;color:var(--text);font-family:inherit;
+}
+.exercise-note-input::placeholder{color:var(--text-muted);}
 .btn-add-exercise{
   width:100%;padding:15px;border-radius:var(--radius-m);background:var(--primary-light);color:var(--primary-dark);
   font-weight:600;font-size:15px;display:flex;align-items:center;justify-content:center;gap:8px;
@@ -340,6 +346,12 @@ p{margin:0;}
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;
 }
 .wstat-label{font-size:10.5px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;}
+/* Notiz der Übung, direkt unter den Stats – z. B. die Wiederholungs-Spanne */
+.workout-note{
+  font-size:13px;color:var(--primary-dark);background:var(--primary-light);
+  border-radius:var(--radius-s);padding:6px 12px;margin-top:8px;flex-shrink:0;
+  max-width:340px;
+}
 
 /* Kurze Bildschirme (kleines iPhone, Browser mit Adressleiste): alles etwas
    enger, damit Kreis, Stats UND die Fortschrittspunkte ohne Scrollen passen.
@@ -457,7 +469,10 @@ p{margin:0;}
   .wstat{padding:7px 6px;}
   .wstat-value{font-size:15px;}
   .workout-weight,.workout-timer{margin-top:4px;}
-  .workout-body{padding-bottom:12px;}
+  .workout-note{font-size:12px;padding:4px 10px;margin-top:5px;}
+  .workout-next-label{margin-top:2px;}
+  .workout-dots{margin-top:8px;gap:5px;}
+  .workout-body{padding-bottom:10px;}
 }
 </style>
 </head>
@@ -669,10 +684,12 @@ p{margin:0;}
       </div>
 
       <div id="workout-stats" class="workout-stats">
-        <div class="wstat"><span class="wstat-value" id="wstat-last">–</span><span class="wstat-label">Zuletzt</span></div>
-        <div class="wstat"><span class="wstat-value" id="wstat-pr">–</span><span class="wstat-label">Rekord</span></div>
+        <div class="wstat"><span class="wstat-value" id="wstat-last">–</span><span class="wstat-label">Wdh zuletzt</span></div>
         <div class="wstat"><span class="wstat-value" id="wstat-lastkg">–</span><span class="wstat-label">kg zuletzt</span></div>
+        <div class="wstat"><span class="wstat-value" id="wstat-pr">–</span><span class="wstat-label">Rekord</span></div>
       </div>
+
+      <p id="workout-note" class="workout-note" hidden></p>
 
       <div class="workout-circle-area">
         <button id="btn-circle-minus" class="circle-adjust" type="button">−</button>
@@ -819,40 +836,40 @@ const EXAMPLE_PLANS = [
     name: 'Montag – Push',
     setsRest: 150, exRest: 180,
     exercises: [
-      { name: 'Rudergerät', cat: 'Cardio', type: 'cardio', weight: '', units: reps(1, 10) },
-      { name: 'Dips mit Zusatzgewicht', cat: 'Brust', type: 'strength', weight: '', units: reps(3, 10) },
-      { name: 'Schulterdrücken einarmig (Kurzhantel)', cat: 'Schultern', type: 'strength', weight: '12.5', units: reps(3, 10) },
-      { name: 'Liegestütze (Push-up)', cat: 'Brust', type: 'strength', weight: '', units: reps(3, 25) },
-      { name: 'Klimmzug (Pull-up)', cat: 'Rücken', type: 'strength', weight: '', units: reps(3, 25) },
-      { name: 'Kettlebell Goblet Squat', cat: 'Kettlebell', type: 'strength', weight: '15.5', units: reps(2, 25) },
-      { name: 'Überkopf Trizepsdrücken (Kurzhantel)', cat: 'Arme', type: 'strength', weight: '12.5', units: reps(3, 12) },
-      { name: 'Plank', cat: 'Bauch', type: 'hold', weight: '', units: reps(3, 60) },
+      { name: 'Rudergerät', cat: 'Cardio', type: 'cardio', weight: '', units: reps(1, 10), note: 'Warm-up' },
+      { name: 'Dips mit Zusatzgewicht', cat: 'Brust', type: 'strength', weight: '', units: reps(3, 10), note: '6–10 Wdh. · SCHWER · Gürtel, steigernd' },
+      { name: 'Schulterdrücken einarmig (Kurzhantel)', cat: 'Schultern', type: 'strength', weight: '12.5', units: reps(3, 10), note: '6–10 Wdh. · SCHWER · pro Arm, steigernd' },
+      { name: 'Klimmzug (Pull-up)', cat: 'Rücken', type: 'strength', weight: '', units: reps(3, 25), note: '15–25 Wdh. · leicht · weiter Griff, ohne Zusatzgewicht' },
+      { name: 'Liegestütze (Push-up)', cat: 'Brust', type: 'strength', weight: '', units: reps(3, 25), note: '15–25 Wdh. · leicht' },
+      { name: 'Kettlebell Goblet Squat', cat: 'Kettlebell', type: 'strength', weight: '15.5', units: reps(2, 25), note: '15–25 Wdh. · leicht' },
+      { name: 'Überkopf Trizepsdrücken (Kurzhantel)', cat: 'Arme', type: 'strength', weight: '12.5', units: reps(3, 12), note: '10–12 Wdh. · Isolation' },
+      { name: 'Plank', cat: 'Bauch', type: 'hold', weight: '', units: reps(3, 60), note: 'Core' },
     ],
   },
   {
     name: 'Mittwoch – Pull',
     setsRest: 150, exRest: 180,
     exercises: [
-      { name: 'Rudergerät', cat: 'Cardio', type: 'cardio', weight: '', units: reps(1, 10) },
-      { name: 'Klimmzug mit Zusatzgewicht', cat: 'Rücken', type: 'strength', weight: '', units: reps(5, 8) },
-      { name: 'Rudern vorgebeugt einarmig (Kurzhantel)', cat: 'Rücken', type: 'strength', weight: '', units: reps(3, 10) },
-      { name: 'Liegestütze (Push-up)', cat: 'Brust', type: 'strength', weight: '', units: reps(3, 25) },
-      { name: 'Kettlebell Swing', cat: 'Kettlebell', type: 'strength', weight: '15.5', units: reps(4, 21) },
-      { name: 'Bizepscurls (SZ-Stange)', cat: 'Arme', type: 'strength', weight: '20', units: reps(3, 13) },
-      { name: 'Ab Wheel', cat: 'Bauch', type: 'strength', weight: '', units: reps(3, 15) },
+      { name: 'Rudergerät', cat: 'Cardio', type: 'cardio', weight: '', units: reps(1, 10), note: 'Warm-up' },
+      { name: 'Klimmzug mit Zusatzgewicht', cat: 'Rücken', type: 'strength', weight: '', units: reps(5, 8), note: '5–8 Wdh. · SCHWER · Kern-Lift, Gürtel' },
+      { name: 'Rudern vorgebeugt einarmig (Kurzhantel)', cat: 'Rücken', type: 'strength', weight: '', units: reps(3, 10), note: '6–10 Wdh. · SCHWER · pro Arm, steigernd' },
+      { name: 'Liegestütze (Push-up)', cat: 'Brust', type: 'strength', weight: '', units: reps(3, 25), note: '15–25 Wdh. · leicht' },
+      { name: 'Kettlebell Swing', cat: 'Kettlebell', type: 'strength', weight: '15.5', units: reps(4, 21), note: '15–21 Wdh. · Hüftstreckung' },
+      { name: 'Bizepscurls (SZ-Stange)', cat: 'Arme', type: 'strength', weight: '20', units: reps(3, 13), note: '10–13 Wdh. · Isolation' },
+      { name: 'Ab Wheel', cat: 'Bauch', type: 'strength', weight: '', units: reps(3, 15), note: '12–15 Wdh. · Core' },
     ],
   },
   {
     name: 'Freitag – Beine',
     setsRest: 150, exRest: 180,
     exercises: [
-      { name: 'Rudergerät', cat: 'Cardio', type: 'cardio', weight: '', units: reps(1, 10) },
-      { name: 'Kettlebell Goblet Squat', cat: 'Kettlebell', type: 'strength', weight: '19.5', units: reps(3, 10) },
-      { name: 'Kettlebell Rumänisches Kreuzheben', cat: 'Kettlebell', type: 'strength', weight: '19.5', units: reps(3, 10) },
-      { name: 'Liegestütze (Push-up)', cat: 'Brust', type: 'strength', weight: '', units: reps(3, 25) },
-      { name: 'Klimmzug (Pull-up)', cat: 'Rücken', type: 'strength', weight: '', units: reps(3, 15) },
-      { name: 'Wadenheben einbeinig (Kurzhantel)', cat: 'Beine', type: 'strength', weight: '12.5', units: reps(3, 15) },
-      { name: 'Plank', cat: 'Bauch', type: 'hold', weight: '', units: reps(3, 60) },
+      { name: 'Rudergerät', cat: 'Cardio', type: 'cardio', weight: '', units: reps(1, 10), note: 'Warm-up' },
+      { name: 'Kettlebell Goblet Squat', cat: 'Kettlebell', type: 'strength', weight: '19.5', units: reps(3, 10), note: '6–10 Wdh. · SCHWER · große Kettlebell' },
+      { name: 'Kettlebell Rumänisches Kreuzheben', cat: 'Kettlebell', type: 'strength', weight: '19.5', units: reps(3, 10), note: '6–10 Wdh. · SCHWER · beidhändig gehalten' },
+      { name: 'Klimmzug (Pull-up)', cat: 'Rücken', type: 'strength', weight: '', units: reps(3, 15), note: '12–15 Wdh. · locker' },
+      { name: 'Liegestütze (Push-up)', cat: 'Brust', type: 'strength', weight: '', units: reps(3, 25), note: '15–25 Wdh. · leicht' },
+      { name: 'Wadenheben einbeinig (Kurzhantel)', cat: 'Beine', type: 'strength', weight: '12.5', units: reps(3, 15), note: '12–15 Wdh. · pro Bein' },
+      { name: 'Plank', cat: 'Bauch', type: 'hold', weight: '', units: reps(3, 60), note: 'Core · wechselnd mit Ab Wheel (Tag B)' },
     ],
   },
 ];
@@ -1217,6 +1234,17 @@ function buildExerciseEditorCard(ex, exIndex) {
   });
   card.appendChild(addUnitBtn);
 
+  // Freie Notiz pro Übung – z. B. die Wiederholungs-Spanne „6–10", die als feste
+  // Zielzahl im Kreis nicht abbildbar ist. Erscheint im Training unter den Stats.
+  const notiz = document.createElement('input');
+  notiz.type = 'text';
+  notiz.className = 'exercise-note-input';
+  notiz.maxLength = 60;
+  notiz.placeholder = 'Notiz, z. B. „6–10 Wdh." oder „Gürtel"';
+  notiz.value = ex.note || '';
+  notiz.addEventListener('input', (e) => { ex.note = e.target.value; });
+  card.appendChild(notiz);
+
   return card;
 }
 function moveExercise(exIndex, dir) {
@@ -1364,7 +1392,7 @@ function buildRunSequence(plan) {
     ex.units.forEach((unit, unitIndex) => {
       seq.push({
         exIndex, unitIndex,
-        exName: ex.name, exType: ex.type, weight: startGewicht,
+        exName: ex.name, exType: ex.type, weight: startGewicht, note: ex.note || '',
         target: unit.target, achieved: unit.target,
         isLastUnitOfExercise: unitIndex === ex.units.length - 1,
       });
@@ -1528,20 +1556,63 @@ function stopUebungsTimer(zeitUebernehmen) {
 /* ---------- Bildschirm während des Trainings wachhalten ---------- */
 // Braucht HTTPS und iOS 16.4+. Wo es fehlt, passiert nichts und der Bildschirm
 // verhält sich wie vorher – deshalb überall stillschweigend abfangen.
+let wakeLockAngefordert = false;      // laeuft gerade eine Anfrage?
+let wakeLockLetzterVersuch = 0;       // Zeitpunkt des letzten Versuchs (Bremse)
+let wakeLockHinweisGezeigt = false;
+let wakeLockLiefSchonMal = false;
+let wakeLockAbsichtlichBeendet = false;
+
+// iOS gibt die Sperre auch von sich aus wieder frei – etwa im Stromsparmodus,
+// bei Systemlast oder nach einer Unterbrechung. Frueher wurde sie dann nie neu
+// angefordert und der Bildschirm ging fuer den Rest des Trainings immer wieder
+// aus (Darios Beobachtung ab Minute 68). Deshalb: nach Verlust selbst neu
+// anfordern und im Sekundentakt nachsehen.
 async function requestWakeLock() {
-  if (!('wakeLock' in navigator) || wakeLock) return;
+  if (!('wakeLock' in navigator)) return;
+  if (wakeLock || wakeLockAngefordert) return;
+  if (!activeWorkout || document.visibilityState !== 'visible') return;
+
+  wakeLockAngefordert = true;
+  wakeLockAbsichtlichBeendet = false;
+  wakeLockLetzterVersuch = Date.now();
   try {
-    wakeLock = await navigator.wakeLock.request('screen');
-    // Das System gibt die Sperre beim Wegwischen von selbst frei
-    wakeLock.addEventListener('release', () => { wakeLock = null; });
+    const lock = await navigator.wakeLock.request('screen');
+    wakeLock = lock;
+    wakeLockLiefSchonMal = true;
+    lock.addEventListener('release', () => {
+      if (wakeLock === lock) wakeLock = null;
+      // Beim Trainingsende geben wir selbst frei – dann darf nicht neu
+      // angefordert werden, sonst bliebe der Bildschirm danach an.
+      if (wakeLockAbsichtlichBeendet) return;
+      if (activeWorkout && document.visibilityState === 'visible') requestWakeLock();
+    });
   } catch {
     wakeLock = null;
+    // Nur melden, wenn es vorher lief und jetzt scheitert – sonst wuerde jedes
+    // Geraet ohne Wake-Lock-Unterstuetzung unnoetig gewarnt.
+    if (wakeLockLiefSchonMal && !wakeLockHinweisGezeigt) {
+      wakeLockHinweisGezeigt = true;
+      showToast('Bildschirm bleibt nicht mehr an – evtl. Stromsparmodus aktiv.');
+    }
+  } finally {
+    wakeLockAngefordert = false;
   }
 }
+// Wird im Sekundentakt aus workoutTick() aufgerufen: hoechstens alle 10 s ein
+// neuer Versuch, damit ein dauerhaft ablehnendes System nicht dauernd gefragt wird.
+function pruefeWakeLock() {
+  if (wakeLock || !activeWorkout) return;
+  if (document.visibilityState !== 'visible') return;
+  if (Date.now() - wakeLockLetzterVersuch < 10000) return;
+  requestWakeLock();
+}
 function releaseWakeLock() {
-  if (!wakeLock) return;
-  wakeLock.release().catch(() => {});
+  wakeLockAbsichtlichBeendet = true;
+  wakeLockHinweisGezeigt = false;
+  wakeLockLiefSchonMal = false;
+  const lock = wakeLock;
   wakeLock = null;
+  if (lock) lock.release().catch(() => {});
 }
 
 function showWorkoutScreen() {
@@ -1559,6 +1630,7 @@ function startWorkoutTicking() {
 function stopWorkoutTicking() { clearInterval(workoutTickInterval); workoutTickInterval = null; }
 function workoutTick() {
   if (!activeWorkout || workoutPaused) return;
+  pruefeWakeLock();   // Sperre verloren? Dann still wieder anfordern.
   processWorkoutTimers();
   if (!activeWorkout) return; // Training kann durch processWorkoutTimers() gerade beendet worden sein
   updateElapsed();
@@ -1667,6 +1739,13 @@ function renderWorkoutStep() {
   // die noch aus einem älteren Zwischenstand wiederhergestellt werden.
   const saetzeDieserUebung = activeWorkout.seq.filter(s => s.exIndex === step.exIndex).length;
   $('#workout-unit-label').textContent = `Satz ${step.unitIndex + 1} von ${saetzeDieserUebung}`;
+
+  // Notiz der Übung (z. B. „6–10 Wdh.") – nur während der Übung, nicht in der Pause
+  const notizEl = $('#workout-note');
+  const notizText = (step.note || '').trim();
+  const notizSichtbar = !!notizText && activeWorkout.phase === 'exercise';
+  notizEl.hidden = !notizSichtbar;
+  if (notizSichtbar) notizEl.textContent = notizText;
 
   // Gewichts-Regler nur bei Kraftübungen und nur während der Übung (nicht in der Pause)
   const weightBox = $('#workout-weight');
